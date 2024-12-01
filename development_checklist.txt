@@ -1,0 +1,70 @@
+MCP Server Development Checklist
+
+Project Setup
+[✓] Create project directory
+[✓] Initialize Python project with pyproject.toml
+[✓] Set up dependencies using uv
+[✓] Create main server file (server.py)
+
+Server Implementation
+[✓] Implement basic MCP server structure
+[✓] Add resource endpoint for Claude status
+[✓] Add tool for Claude restart functionality
+[✓] Add proper error handling and logging
+[✓] Add progress notifications
+
+Development and Testing with MCP Inspector
+Initial Setup
+[ ] Launch Inspector with local server:
+    npx @modelcontextprotocol/inspector uv --directory /Users/mlrsmith/Library/Mobile Documents/com~apple~CloudDocs/Family_Shared/AI/mcp/mcp-server-restart run claude-restart-server
+
+Server Connection Testing
+[ ] Verify basic connectivity
+[ ] Check capability negotiation
+[ ] Monitor server logs in Notifications pane
+
+Resource Testing (claude://status)
+[ ] Verify resource appears in Resources tab
+[ ] Check resource metadata (MIME type, description)
+[ ] Test resource content retrieval
+[ ] Verify JSON format of status response
+
+Tool Testing (restart_claude)
+[ ] Verify tool appears in Tools tab
+[ ] Check tool schema and description
+[ ] Test tool execution
+[ ] Verify progress notifications
+[ ] Test error handling:
+    - When Claude is not running
+    - When permission is denied
+    - When start/stop fails
+
+Edge Case Testing
+[ ] Test concurrent operations
+[ ] Verify error responses
+[ ] Test with invalid inputs
+
+Integration
+[ ] Create claude_desktop_config.json
+[ ] Configure Claude Desktop to use the server
+[ ] Test full integration with Claude Desktop
+
+Documentation
+[ ] Create README with:
+    - Installation instructions
+    - Usage examples
+    - Configuration guide
+[ ] Document server capabilities
+[ ] Add troubleshooting section
+
+NEXT TASK: Start MCP Inspector Testing
+
+To begin testing:
+1. Run the Inspector with our server:
+   npx @modelcontextprotocol/inspector uv --directory "/Users/mlrsmith/Library/Mobile Documents/com~apple~CloudDocs/Family_Shared/AI/mcp/mcp-server-restart" run claude-restart-server
+
+2. Use the Inspector interface to:
+   - Check server connection
+   - Test the status resource
+   - Test the restart tool
+   - Monitor notifications
