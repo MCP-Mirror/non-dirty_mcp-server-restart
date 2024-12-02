@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-server-restart"
-version = "0.1.0"
+version = "0.1.2"
 description = "MCP server for restarting Claude Desktop"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -45,4 +45,4 @@ asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
 
 [project.scripts]
-mcp-server-restart = "mcp_server_restart.server:main"
+mcp-server-restart = "mcp_server_restart.server:run_server"

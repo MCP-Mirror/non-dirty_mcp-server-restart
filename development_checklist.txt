@@ -34,7 +34,7 @@ Tool Testing (restart_claude)
 [✓] Check tool schema and description
 [✓] Test tool execution
 [✓] Verify progress notifications
-[✓] Test error handling:
+[ ] Test error handling:
     - When Claude is not running
     - When permission is denied
     - When start/stop fails
@@ -49,8 +49,16 @@ Integration
 [ ] Configure Claude Desktop to use the server
 [ ] Test full integration with Claude Desktop
 
+Project Publication
+[✓] Build package distributions
+[✓] Upload to PyPI (version 0.1.0)
+[✓] Create GitHub release tag v0.1.0
+
 Remaining Tasks:
 - Implement more robust logging
 - Add configuration file support
 - Expand platform compatibility
 - Create more detailed error reporting
+- Improve error handling scenarios
+- Add more comprehensive test coverage
+- Create detailed documentation

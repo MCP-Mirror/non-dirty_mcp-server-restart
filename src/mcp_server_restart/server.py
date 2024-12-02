@@ -167,5 +167,9 @@ async def main():
             initialization_options=initialization_options
         )
 
-if __name__ == "__main__":
+def run_server():
+    """Entry point for the package."""
     asyncio.run(main())
+
+if __name__ == "__main__":
+    run_server()
