@@ -1,111 +1,73 @@
-# mcp-server-restart MCP server
+# mcp-server-restart
 
 Model Context Protocol (MCP) server for restarting Claude Desktop for Mac
 
-## Components
+## Features
 
 ### Resources
 
-The server implements a simple note storage system with:
-- Custom note:// URI scheme for accessing individual notes
-- Each note resource has a name, description and text/plain mimetype
-
-### Prompts
-
-The server provides a single prompt:
-- summarize-notes: Creates summaries of all stored notes
-  - Optional "style" argument to control detail level (brief/detailed)
-  - Generates prompt combining all current notes with style preference
+The server provides a status resource:
+- `claude://status` - Returns the current status of Claude Desktop
+  - Returns JSON with running status, PID, and timestamp
+  - MIME type: application/json
 
 ### Tools
 
 The server implements one tool:
-- add-note: Adds a new note to the server
-  - Takes "name" and "content" as required string arguments
-  - Updates server state and notifies clients of resource changes
+- `restart_claude` - Restarts the Claude Desktop application
+  - Safely terminates existing process if running
+  - Launches new instance
+  - Provides progress notifications during restart
+
+## Installation
+
+```bash
+pip install mcp-server-restart
+```
 
 ## Configuration
 
-[TODO: Add configuration details specific to your implementation]
+### Claude Desktop Integration
 
-## Quickstart
+Add the following to your Claude Desktop config file:
 
-### Install
+On MacOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-#### Claude Desktop
-
-On MacOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
-On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
-
-<details>
-  <summary>Development/Unpublished Servers Configuration</summary>
-  ```
+```json
+{
   "mcpServers": {
     "mcp-server-restart": {
+      "enabled": true,
       "command": "uv",
       "args": [
-        "--directory",
-        "/Users/mlrsmith/Library/Mobile Documents/com~apple~CloudDocs/Family_Shared/AI/mcp/mcp-server-restart",
         "run",
-        "mcp-server-restart"
+        "python",
+        "-m",
+        "mcp_server_restart.server"
       ]
     }
   }
-  ```
-</details>
-
-<details>
-  <summary>Published Servers Configuration</summary>
-  ```
-  "mcpServers": {
-    "mcp-server-restart": {
-      "command": "uvx",
-      "args": [
-        "mcp-server-restart"
-      ]
-    }
-  }
-  ```
-</details>
+}
+```
 
 ## Development
 
-### Building and Publishing
+### Setup
 
-To prepare the package for distribution:
-
-1. Sync dependencies and update lockfile:
+1. Clone the repository
+2. Install dependencies:
 ```bash
-uv sync
+uv venv
+uv pip install -e ".[dev]"
 ```
 
-2. Build package distributions:
+### Testing
+
+Run the test suite:
 ```bash
-uv build
+pytest
 ```
 
-This will create source and wheel distributions in the `dist/` directory.
+## License
 
-3. Publish to PyPI:
-```bash
-uv publish
-```
-
-Note: You'll need to set PyPI credentials via environment variables or command flags:
-- Token: `--token` or `UV_PUBLISH_TOKEN`
-- Or username/password: `--username`/`UV_PUBLISH_USERNAME` and `--password`/`UV_PUBLISH_PASSWORD`
-
-### Debugging
-
-Since MCP servers run over stdio, debugging can be challenging. For the best debugging
-experience, we strongly recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector).
-
-
-You can launch the MCP Inspector via [`npm`](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) with this command:
-
-```bash
-npx @modelcontextprotocol/inspector uv --directory /Users/mlrsmith/Library/Mobile Documents/com~apple~CloudDocs/Family_Shared/AI/mcp/mcp-server-restart run mcp-server-restart
-```
-
-
-Upon launching, the Inspector will display a URL that you can access in your browser to begin debugging.
+MIT License - see LICENSE file for details
