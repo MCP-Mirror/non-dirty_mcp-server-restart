@@ -29,44 +29,59 @@ async def handle_list_resources() -> list[types.Resource]:
     return [
         types.Resource(
             uri=types.AnyUrl("claude://status"),
-            name="Claude Desktop Status",
-            description="Current status of the Claude Desktop application",
+            name="Claude Status",
+            description="Current status of the Claude application",
             mimeType="application/json",
         )
     ]
 
 @server.read_resource()
-async def handle_read_resource(uri: str) -> str:
-    """Read Claude Desktop status."""
-    try:
-        # Try to parse the URI
-        if not isinstance(uri, str) or not uri.startswith("claude://"):
-            raise ValueError("Unknown resource: Invalid URI scheme")
-        
-        path = uri.replace("claude://", "")
-        if not path or path != "status":
-            raise ValueError(f"Unknown resource: {path}")
+async def handle_read_resource(uri: types.AnyUrl) -> str:
+    """Read Claude status."""
+    logger.debug(f"Handling read_resource request for URI: {uri}")
+    if uri.scheme != "claude":
+        logger.error(f"Unsupported URI scheme: {uri.scheme}")
+        raise ValueError(f"Unsupported URI scheme: {uri.scheme}")
 
-        # Find Claude process
-        claude_processes = []
-        for proc in psutil.process_iter(['pid', 'name']):
-            try:
-                if proc.info['name'] == 'Claude Desktop':
-                    claude_processes.append(proc)
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
+    path = str(uri).replace("claude://", "")
+    if not path or path != "status":
+        logger.error(f"Unknown resource path: {path}")
+        raise ValueError(f"Unknown resource path: {path}")
 
-        status = {
-            "running": len(claude_processes) > 0,
-            "pid": claude_processes[0].pid if claude_processes else None,
-            "timestamp": datetime.now().isoformat()
-        }
+    # Find Claude process
+    claude_process = None
+    logger.debug("Searching for Claude process...")
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            # Handle both dictionary and attribute access for process info
+            name = proc.info['name'] if isinstance(proc.info, dict) else proc.info.name
+            pid = proc.info['pid'] if isinstance(proc.info, dict) else proc.info.pid
+            logger.debug(f"Found process: name={name}, pid={pid}")
+            
+            if name == 'Claude':
+                logger.debug(f"Found Claude process with pid: {pid}")
+                # Only consider it a valid process if it has a pid
+                if pid is not None and pid > 0:
+                    claude_process = proc
+                    logger.debug(f"Valid Claude process found with pid: {pid}")
+                    break
+                else:
+                    logger.debug("Claude process found but has invalid pid")
+        except (psutil.NoSuchProcess, psutil.AccessDenied, KeyError, AttributeError) as e:
+            logger.debug(f"Error accessing process: {e}")
+            continue
 
-        return json.dumps(status)
-    except Exception as e:
-        if "Unknown resource" not in str(e):
-            raise ValueError(f"Unknown resource: {str(e)}")
-        raise
+    is_running = claude_process is not None
+    logger.debug(f"Final status - is_running: {is_running}, process: {claude_process}")
+    
+    status = {
+        "running": is_running,
+        "pid": claude_process.pid if is_running else None,
+        "timestamp": datetime.now().isoformat()
+    }
+    logger.debug(f"Returning status: {status}")
+
+    return json.dumps(status)
 
 @server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
@@ -74,7 +89,7 @@ async def handle_list_tools() -> list[types.Tool]:
     return [
         types.Tool(
             name="restart_claude",
-            description="Restart the Claude Desktop application",
+            description="Restart the Claude application",
             inputSchema={
                 "type": "object",
                 "properties": {},
@@ -85,7 +100,7 @@ async def handle_list_tools() -> list[types.Tool]:
 
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: Any) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """Handle tool calls for Claude Desktop restart."""
+    """Handle tool calls for Claude restart."""
     if name != "restart_claude":
         raise ValueError(f"Unknown tool: {name}")
 
@@ -95,7 +110,7 @@ async def handle_call_tool(name: str, arguments: Any) -> list[types.TextContent 
     claude_processes = []
     for proc in psutil.process_iter(['pid', 'name']):
         try:
-            if proc.info['name'] == 'Claude Desktop':
+            if proc.info['name'] == 'Claude':
                 claude_processes.append(proc)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue

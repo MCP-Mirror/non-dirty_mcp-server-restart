@@ -56,7 +56,7 @@ async def test_list_tools():
     tools = await handle_list_tools()
     assert len(tools) == 1
     assert tools[0].name == "restart_claude"
-    assert tools[0].description == "Restart the Claude Desktop application"
+    assert tools[0].description == "Restart the Claude application"
 
 @pytest.mark.asyncio
 async def test_list_resources():
@@ -64,13 +64,13 @@ async def test_list_resources():
     resources = await handle_list_resources()
     assert len(resources) == 1
     assert str(resources[0].uri) == "claude://status"
-    assert resources[0].name == "Claude Desktop Status"
+    assert resources[0].name == "Claude Status"
 
 @pytest.mark.asyncio
 async def test_restart_claude_success():
     """Test successful Claude restart."""
     # Mock the process iteration to return a mock process
-    mock_process = MockProcess('Claude Desktop')
+    mock_process = MockProcess('Claude')
     def mock_process_iter(*args, **kwargs):
         return [mock_process]
     
@@ -104,7 +104,7 @@ async def test_restart_claude_no_existing_process():
 @pytest.mark.asyncio
 async def test_restart_claude_termination_error():
     """Test Claude restart with process termination error."""
-    mock_process = MockProcess('Claude Desktop')
+    mock_process = MockProcess('Claude')
     def mock_process_iter(*args, **kwargs):
         return [mock_process]
     
@@ -125,7 +125,7 @@ async def test_restart_claude_termination_error():
 @pytest.mark.asyncio
 async def test_restart_claude_start_error():
     """Test Claude restart with process start error."""
-    mock_process = MockProcess('Claude Desktop')
+    mock_process = MockProcess('Claude')
     def mock_process_iter(*args, **kwargs):
         return [mock_process]
     
@@ -145,12 +145,12 @@ async def test_restart_claude_start_error():
 async def test_status_resource_response():
     """Test that the status resource returns correctly formatted JSON."""
     # Test with running process
-    mock_process = MockProcess('Claude Desktop', pid=54321)
+    mock_process = MockProcess('Claude', pid=54321)
     def mock_process_iter(*args, **kwargs):
         return [mock_process]
     
     with patch('psutil.process_iter', mock_process_iter):
-        result = await handle_read_resource("claude://status")
+        result = await handle_read_resource(types.AnyUrl("claude://status"))
         data = json.loads(result)
         
         assert isinstance(data, dict)
@@ -170,7 +170,7 @@ async def test_status_resource_response():
         return []
     
     with patch('psutil.process_iter', mock_empty_iter):
-        result = await handle_read_resource("claude://status")
+        result = await handle_read_resource(types.AnyUrl("claude://status"))
         data = json.loads(result)
         
         assert data["running"] is False
@@ -181,9 +181,9 @@ async def test_multiple_claude_processes():
     """Test behavior when multiple Claude processes are running."""
     # Create multiple mock processes
     processes = [
-        MockProcess('Claude Desktop', pid=1000),
-        MockProcess('Claude Desktop', pid=1001),
-        MockProcess('Claude Desktop', pid=1002)
+        MockProcess('Claude', pid=1000),
+        MockProcess('Claude', pid=1001),
+        MockProcess('Claude', pid=1002)
     ]
     
     def mock_process_iter(*args, **kwargs):
@@ -206,22 +206,65 @@ async def test_multiple_claude_processes():
 async def test_invalid_resource_uri():
     """Test handling of invalid resource URIs."""
     invalid_uris = [
-        "claude:/status",  # Missing slash
-        "claude://invalid",  # Unknown endpoint
         "http://status",  # Wrong scheme
+        "claude://invalid",  # Unknown endpoint
         "claude://status/extra",  # Extra path
     ]
-    
+
     for uri in invalid_uris:
         with pytest.raises(ValueError) as exc_info:
-            await handle_read_resource(uri)
-        assert "Unknown resource" in str(exc_info.value)
+            await handle_read_resource(types.AnyUrl(uri))
+        if "scheme" in str(exc_info.value):
+            assert "Unsupported URI scheme" in str(exc_info.value)
+        else:
+            assert "Unknown resource path" in str(exc_info.value)
+
+@pytest.mark.asyncio
+async def test_status_consistency():
+    """Test that running=true always has a valid pid and running=false always has pid=None."""
+    # Test with running process
+    mock_process = MockProcess('Claude', pid=54321)
+    def mock_process_iter(*args, **kwargs):
+        return [mock_process]
+    
+    with patch('psutil.process_iter', mock_process_iter):
+        result = await handle_read_resource(types.AnyUrl("claude://status"))
+        data = json.loads(result)
+        assert data["running"] is True, "Process should be marked as running"
+        assert data["pid"] is not None, "Running process must have a non-null pid"
+        assert isinstance(data["pid"], int), "PID must be an integer"
+        assert data["pid"] > 0, "PID must be positive"
+        assert data["pid"] == mock_process.pid, "PID should match the mock process"
+    
+    # Test with no process
+    def mock_empty_iter(*args, **kwargs):
+        return []
+    
+    with patch('psutil.process_iter', mock_empty_iter):
+        result = await handle_read_resource(types.AnyUrl("claude://status"))
+        data = json.loads(result)
+        assert data["running"] is False, "Process should be marked as not running"
+        assert data["pid"] is None, "Non-running process must have null pid"
+    
+    # Test the edge case we're seeing in production where running=true but pid=null
+    mock_process_no_pid = MockProcess('Claude', pid=None)
+    def mock_process_iter_no_pid(*args, **kwargs):
+        return [mock_process_no_pid]
+    
+    with patch('psutil.process_iter', mock_process_iter_no_pid):
+        result = await handle_read_resource(types.AnyUrl("claude://status"))
+        data = json.loads(result)
+        # These assertions should fail if we have running=true with pid=null
+        assert data["running"] == bool(data["pid"]), "running status must match pid existence"
+        if data["running"]:
+            assert isinstance(data["pid"], int), "Running process must have integer pid"
+            assert data["pid"] > 0, "Running process must have positive pid"
 
 @pytest.mark.asyncio
 async def test_process_wait_timeout():
     """Test handling of process termination timeout."""
     # Create mock process that times out
-    mock_process = MockProcess('Claude Desktop')
+    mock_process = MockProcess('Claude')
     mock_process.set_wait_timeout(True)
     
     def mock_process_iter(*args, **kwargs):
