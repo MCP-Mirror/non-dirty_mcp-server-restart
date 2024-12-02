@@ -2,6 +2,17 @@
 
 Model Context Protocol (MCP) server for restarting Claude Desktop for Mac
 
+## Description
+
+Using Model Context Protocol (MCP) for Claude Desktop tool installation is a bit cumbersome. The mcp-installer makes things easier by using MCP to allow you to ask Claude to install MCP tools. 
+
+Once they are installed, you still need to restart Claude Desktop to make the changes take effect... That is where mcp-server-restart comes in!
+
+The `mcp-server-restart` package provides a MCP server for restarting Claude Desktop for Mac.
+
+## Usage
+Ask Claude Desktop "restart Claude" and it will restart the application. 
+
 ## Features
 
 ### Resources
@@ -19,47 +30,55 @@ The server implements one tool:
   - Launches new instance
   - Provides progress notifications during restart
 
-## Installation
+## Installation for Claude Desktop
 
-```bash
-pip install mcp-server-restart
-```
+Installation requires editing your Claude Desktop config file on MacOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-## Configuration
-
-### Claude Desktop Integration
+Option 1: Install both the [mcp-installer](https://github.com/anaisbetts/mcp-installer) and the [mcp-server-restart](https://github.com/non-dirty/mcp-server-restart) packages:
 
 Add the following to your Claude Desktop config file:
-
-On MacOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
-    "mcp-server-restart": {
-      "enabled": true,
-      "command": "uv",
+    "mcp-installer": {
+      "command": "npx",
       "args": [
-        "run",
-        "python",
-        "-m",
-        "mcp_server_restart.server"
+        "@anaisbetts/mcp-installer"
+      ]
+    },
+    "mcp-server-restart": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-restart"
       ]
     }
   }
 }
 ```
 
-## Development
+Option 1: Install only the [mcp-server-restart](https://github.com/non-dirty/mcp-server-restart) package:
 
-### Setup
+Add the following to your Claude Desktop config file:
 
-1. Clone the repository
-2. Install dependencies:
-```bash
-uv venv
-uv pip install -e ".[dev]"
+```json
+{
+  "mcpServers": {
+    "mcp-server-restart": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-restart"
+      ]
+    }
+  }
+}
 ```
+
+### Example prompts
+
+> Hey Claude, install the MCP server named mcp-server-fetch then restart Claude
+
+> Please restart Claude
 
 ### Testing
 
